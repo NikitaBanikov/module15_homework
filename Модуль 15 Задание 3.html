@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Чат WebSocket</title>
+    <style>
+		*{
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+	.wrapper {
+		width: 500px;
+		height: auto;
+		padding: 10px;
+		box-shadow: 5px 5px 5px 5px rgb(134, 134, 134);
+		margin: 20px auto;
+	}
+
+	.form-chat {
+		display: flex;
+		justify-content: space-between;
+	}
+
+	.form-input {
+		border: 3px solid #4284e7;
+		padding: 7px 5px;
+		width: 80%;
+		margin-right: 10px;
+		outline: none;
+		
+	}
+	.form-input:focus {
+		border: 3px solid #15ddeb;
+	}
+
+	.form-btn {
+		border: none;
+		background-color: #4284e7;
+		padding: 0px 5px;
+		width: 30%;
+		cursor: pointer; 
+	}
+	.form-btn:hover {
+		background-color: #15ddeb;
+	}
+
+	.wrapper-chat {
+		overflow: auto;
+		border: 3px solid #4284e7;
+		padding: 5px;
+		margin-top: 12px;
+		height: 400px;
+	}
+
+	.messages {
+		border: 3px solid #4284e7;
+		border-radius: 10px;
+		padding: 10px;
+		margin-bottom: 7px;
+		align-self: flex-end;
+	} 
+
+	.user-messages {
+		display: flex;
+		flex-flow: column wrap;
+
+	}
+
+	.server-messages, a {
+		cursor: pointer;
+		color: #eb1599;
+		text-decoration: none
+	}
+	
+	.server-messages:hover, a:hover {
+		color: #15ddeb;
+	}
+
+	.geo-location {
+		margin-left: 6px;
+	}
+    </style>
+</head>
+<body>
+	<div class="wrapper">
+	<header class="header">
+		<h1 class="title">Чат c WebSocket</h1>
+	</header>
+	<main class="main">
+		<section class="chat">
+			<form class="form-chat form" action="#" >
+				<input class="form-input input" type="text" name="text" placeholder="Здесь вводится текст сообщения">
+				<button  class="form-btn btn-mess"  >Отправить</button>
+				<button class="form-btn geo-location btn-geo" >Гео-локация</button>
+			  </form>
+			  <div class="wrapper-chat">
+				<div class="user-messages"></div>
+				<div class="server-messages">Удалить все сообщения</div>
+			  </div>
+		</section>
+	</main>
+    </div>
+	<script>
+        const wsUri = " wss://echo-ws-service.herokuapp.com";
+
+		const input = document.querySelector('.input');
+		const btnMess = document.querySelector('.btn-mess');
+		const btnGeo = document.querySelector('.btn-geo');
+		const userMessages = document.querySelector('.user-messages');
+		const serverMessages = document.querySelector('.server-messages');
+		const wrapperChat =  document.querySelector('.wrapper-chat');
+
+		//Выводит сообщения
+		function writeToScreen(message, position='flex-end') {
+			let element = `
+        	<p class='messages' style='align-self: ${position}'>
+            	${message}
+        	</p>
+    		`;
+		userMessages.innerHTML += element;
+		wrapperChat.scrollTop = wrapperChat.scrollHeight;
+  		}
+
+		//Объект соединения
+		let websocket = new WebSocket(wsUri); 
+			websocket.onopen = function(evt) {
+				console.log("CONNECTED");
+			};
+			websocket.onmessage = function(evt) {
+				writeToScreen(`ответ сервера: ${evt.data}`, 'flex-start');
+			};
+			websocket.onerror = function(evt) {
+				writeToScreen(`server: ${evt.data}`, 'flex-start');
+			};
+  
+		//отправка сообщения
+		btnMess.addEventListener('click', () => {
+			let message = input.value;
+			websocket.send(message);
+			writeToScreen(`Вы: ${message}`);
+			input.value = ''
+
+		});
+
+  
+		//гео-локация.
+		// Функция,  об ошибке
+		const error = () => {
+			let textErr0r = 'Невозможно получить ваше местоположение';
+			writeToScreen(textErr0r);
+		};
+  
+		// Функция, срабатывающая при успешном получении геолокации
+		const success = (position) => {
+			let latitude  = position.coords.latitude;
+			let longitude = position.coords.longitude;
+			let geoLink = `https://www.openstreetmap.org/#map=18/${latitude}/${longitude}`;
+			writeToScreen(`<a  href='${geoLink}' target='_blank'>Ваша гео-локация</a>`);
+		};
+  
+		btnGeo.addEventListener('click', () => {
+			if (!navigator.geolocation) {
+			    console.log('Geolocation не поддерживается вашим браузером');
+			} else {
+			navigator.geolocation.getCurrentPosition(success, error);
+			}
+			});
+
+		//удаляем сообщения
+		serverMessages.addEventListener('click', () => {
+			userMessages.innerHTML = " ";
+		});
+    </script>
+</body>
+</html>
